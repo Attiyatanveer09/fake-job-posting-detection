@@ -1,7 +1,7 @@
 import os
 import re
 import string
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request
 import joblib
 
 app = Flask(__name__)
@@ -41,9 +41,16 @@ def home():
 
             # 3. Model se predict karein
             prediction = model.predict(vector)[0]
+            
+            # Terminal mein check karne ke liye ke model asli mein kya output de raha hai
+            print("--- DEBUG LOCAL TESTING ---")
+            print(f"Original Text: {job_text[:30]}...")
+            print(f"Model Prediction Output: {prediction} (Type: {type(prediction)})")
+            print("---------------------------")
 
-            # 4. Result Check (Naye Balanced SVM ke mutabik)
-            if prediction == 1 or str(prediction).lower() == 'fake':
+            # 4. Result Check Logic (Har kisam ke version mismatch output ko handle karne ke liye)
+            # Agar prediction 1 hai, ya string 'fake' hai, ya 0 se alag kuch hai toh fraud hai
+            if str(prediction).strip() == '1' or str(prediction).lower() == 'fake':
                 result = "🚨 ALERT: FAKE JOB POSTING DETECTED!"
                 result_class = "fake"
             else:
