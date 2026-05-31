@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI JobShield - Fake Job Posting Detection</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+
+    <nav>
+        <div class="logo">AI JobShield</div>
+
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#detect">Detection</a></li>
+        </ul>
+    </nav>
+
+    <!-- HERO SECTION -->
+
+    <section id="home" class="hero">
+
+        <h1>Detect Fake Job Postings Using Artificial Intelligence</h1>
+
+        <p>
+            Protect yourself from online recruitment scams using
+            Machine Learning, Natural Language Processing and
+            XGBoost Classification.
+        </p>
+
+        <a href="#detect">
+            <button>Try Detection</button>
+        </a>
+
+    </section>
+
+    <!-- ABOUT SECTION -->
+
+    <section id="about" class="about">
+
+        <h2>About the System</h2>
+
+        <p>
+            AI JobShield is a Machine Learning based platform designed
+            to identify fraudulent job advertisements. The system uses
+            TF-IDF Vectorization and XGBoost Classification to analyze
+            job descriptions and predict whether a posting is genuine
+            or fake.
+        </p>
+
+    </section>
+
+    <!-- STATISTICS -->
+
+    <section class="stats">
+
+        <div class="stat-card">
+            <h2>97.47%</h2>
+            <p>Model Accuracy</p>
+        </div>
+
+        <div class="stat-card">
+            <h2>SVM</h2> <p>Best Model</p>
+        </div>
+
+        <div class="stat-card">
+            <h2>XGBoost</h2>
+            <p>Best Model</p>
+        </div>
+
+        <div class="stat-card">
+            <h2>17,880</h2>
+            <p>Job Postings</p>
+        </div>
+
+    </section>
+
+    <!-- FEATURES -->
+
+    <section class="features">
+
+        <div class="card">
+            <h3>📄 Paste Job Description</h3>
+            <p>Enter any job advertisement text.</p>
+        </div>
+
+        <div class="card">
+            <h3>🤖 AI Analysis</h3>
+            <p>Our trained XGBoost model analyzes the content.</p>
+        </div>
+
+        <div class="card">
+            <h3>✅ Instant Result</h3>
+            <p>Get Real or Fake prediction immediately.</p>
+        </div>
+
+    </section>
+
+    <!-- DETECTION SECTION -->
+
+    <section id="detect" class="predict-section">
+
+        <h2>Job Fraud Detection</h2>
+
+        <form method="POST">
+
+            <textarea
+                name="job_text"
+                placeholder="Paste complete job description here..."
+                required></textarea>
+
+            <br>
+
+            <button type="submit">
+                Analyze Job Posting
+            </button>
+
+        </form>
+
+      {% if result %}
+<div class="result-box {{ result_class }}">
+    {{ result }}
+</div>
+{% endif %}
+
+
+    </section>
+
+    <!-- FOOTER -->
+
+    <footer>
+
+        <h3>AI JobShield</h3>
+
+        <p>Fake Job Posting Detection System Using Machine Learning</p>
+
+        <p>Model: SVM | Feature Extraction: TF-IDF</p>
+
+        <p>Developed by Attiya Tanveer</p>
+
+    </footer>
+
+</body>
+
+</html>
