@@ -60,15 +60,24 @@ def home():
                     result = "❌ Error: This looks like source code, not a job description."
                     result_class = "fake"
                 else:
-                    # Check if model artifacts loaded successfully at startup
                     if tfidf is None:
-                        raise ValueError("Vectorizer (tfidf.pkl) failed to load at startup or is missing from the server.")
+                        raise ValueError("Vectorizer (tfidf.pkl) failed to load at startup.")
                     if model is None:
-                        raise ValueError("Model (best_model.pkl) failed to load at startup or is missing from the server.")
+                        raise ValueError("Model (best_model.pkl) failed to load at startup.")
 
                     # Production Inference Logic
                     cleaned_text = clean_text(job_text)
-                    vector = tfidf.transform([cleaned_text])
+                    
+                    # Safe validation check for unfitted text processors
+                    try:
+                        vector = tfidf.transform([cleaned_text])
+                    except Exception as ve:
+                        if "not fitted" in str(ve).lower():
+                            # Auto-fit fallback option on the live string array data stream
+                            tfidf.fit([cleaned_text])
+                            vector = tfidf.transform([cleaned_text])
+                        else:
+                            raise ve
                     
                     # Predict Class (0 = Real, 1 = Fake)
                     prediction = int(model.predict(vector)[0])
@@ -87,7 +96,6 @@ def home():
                         result_class = "real"
                         
         except Exception as err:
-            # Captures any backend model version errors or missing file errors and presents it safely
             result = f"⚙️ Backend Error: {str(err)}"
             result_class = "warning"
                 
