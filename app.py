@@ -4,9 +4,13 @@ import string
 from flask import Flask, request, render_template
 import joblib
 
-app = Flask(__name__, static_url_path='/static', static_folder='static', template_folder='templates')
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
-# Load fresh Random Forest model and vectorizer
+# Global variables for our machine learning artifacts
+model = None
+tfidf = None
+
+# Load fresh Random Forest model and vectorizer safely
 try:
     model = joblib.load('best_model.pkl')
     tfidf = joblib.load('tfidf.pkl')
@@ -30,46 +34,62 @@ def home():
     confidence = ""
     
     if request.method == "POST":
-        # FIX: Make sure this string is exactly "job_text"
-        job_text = request.form.get("job_text", "")
-        
-        # Validation 1: Word Count check
-        word_count = len(job_text.strip().split())
-        if word_count < 15:
-            result = "⚠️ Please provide a detailed job description (minimum 15 words)."
-            result_class = "warning"
-        
-        # Validation 2: Source code check
-        else:
-            job_markers = ['job', 'work', 'salary', 'experience', 'company', 'role', 'apply', 'skills']
-            code_keywords = ['include', 'iostream', 'namespace', 'int main', 'void']
+        try:
+            job_text = request.form.get("job_text", "")
             
-            has_job_marker = any(marker in job_text.lower() for marker in job_markers)
-            is_code = any(code in job_text.lower() for code in code_keywords)
+            if not job_text or not job_text.strip():
+                result = "⚠️ Please enter a job description to analyze."
+                result_class = "warning"
+                return render_template("index.html", result=result, result_class=result_class, confidence=confidence)
+
+            # Validation 1: Word Count check
+            word_count = len(job_text.strip().split())
+            if word_count < 15:
+                result = "⚠️ Please provide a detailed job description (minimum 15 words)."
+                result_class = "warning"
             
-            if not has_job_marker and is_code:
-                result = "❌ Error: This looks like source code, not a job description."
-                result_class = "fake"
+            # Validation 2: Source code check
             else:
-                # Production Inference Logic
-                cleaned_text = clean_text(job_text)
-                vector = tfidf.transform([cleaned_text])
+                job_markers = ['job', 'work', 'salary', 'experience', 'company', 'role', 'apply', 'skills']
+                code_keywords = ['include', 'iostream', 'namespace', 'int main', 'void']
                 
-                # Predict Class (0 = Real, 1 = Fake)
-                prediction = int(model.predict(vector)[0])
+                has_job_marker = any(marker in job_text.lower() for marker in job_markers)
+                is_code = any(code in job_text.lower() for code in code_keywords)
                 
-                # Extract classification probabilities
-                if hasattr(model, "predict_proba"):
-                    probabilities = model.predict_proba(vector)[0]
-                    confidence_score = round(float(probabilities[prediction]) * 100, 2)
-                    confidence = f"System Confidence: {confidence_score}%"
-                
-                if prediction == 1:
-                    result = "🚨 ALERT: FAKE JOB POSTING DETECTED!"
+                if not has_job_marker and is_code:
+                    result = "❌ Error: This looks like source code, not a job description."
                     result_class = "fake"
                 else:
-                    result = "✅ SUCCESS: REAL JOB POSTING"
-                    result_class = "real"
+                    # Check if model artifacts loaded successfully at startup
+                    if tfidf is None:
+                        raise ValueError("Vectorizer (tfidf.pkl) failed to load at startup or is missing from the server.")
+                    if model is None:
+                        raise ValueError("Model (best_model.pkl) failed to load at startup or is missing from the server.")
+
+                    # Production Inference Logic
+                    cleaned_text = clean_text(job_text)
+                    vector = tfidf.transform([cleaned_text])
+                    
+                    # Predict Class (0 = Real, 1 = Fake)
+                    prediction = int(model.predict(vector)[0])
+                    
+                    # Extract classification probabilities
+                    if hasattr(model, "predict_proba"):
+                        probabilities = model.predict_proba(vector)[0]
+                        confidence_score = round(float(probabilities[prediction]) * 100, 2)
+                        confidence = f"System Confidence: {confidence_score}%"
+                    
+                    if prediction == 1:
+                        result = "🚨 ALERT: FAKE JOB POSTING DETECTED!"
+                        result_class = "fake"
+                    else:
+                        result = "✅ SUCCESS: REAL JOB POSTING"
+                        result_class = "real"
+                        
+        except Exception as err:
+            # Captures any backend model version errors or missing file errors and presents it safely
+            result = f"⚙️ Backend Error: {str(err)}"
+            result_class = "warning"
                 
     return render_template(
         "index.html", 
