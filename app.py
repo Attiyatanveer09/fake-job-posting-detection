@@ -30,6 +30,7 @@ def home():
     confidence = ""
     
     if request.method == "POST":
+        # FIX: Make sure this string is exactly "job_text"
         job_text = request.form.get("job_text", "")
         
         # Validation 1: Word Count check
