@@ -4,7 +4,7 @@ import string
 from flask import Flask, request, render_template
 import joblib
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static', static_folder='static', template_folder='templates')
 
 # Load fresh Random Forest model and vectorizer
 try:
