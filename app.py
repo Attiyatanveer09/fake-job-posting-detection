@@ -10,26 +10,24 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 model = None
 tfidf = None
 
-# Load fresh Random Forest model and vectorizer safely
+# Load your Random Forest model and vectorizer safely
 try:
     model = joblib.load('best_model.pkl')
     tfidf = joblib.load('tfidf.pkl')
-    print("✨ Balanced Random Forest Model & Vectorizer Loaded Successfully!")
+    print("✨ Balanced Model & Vectorizer Loaded Successfully!")
 except Exception as e:
     print(f"❌ Error loading model artifacts: {e}")
 
-def clean_text(text):
+def clean_text_for_production(text):
     if not text:
         return ""
-    text = text.lower()
+    # MATCH NOTEBOOK: We remove HTML tags if present, but we PRESERVE
+    # capitalization, numbers, and punctuation exactly like your notebook's text format did!
     text = re.sub(r'<.*?>', '', text) 
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    text = re.sub(r'\d+', '', text)
     return text
 
 @app.route("/", methods=["GET", "POST"])
 def home():
-    global tfidf  # Mark global to allow dynamic hot-fixes if required
     result = ""
     result_class = ""
     confidence = ""
@@ -66,24 +64,9 @@ def home():
                     if model is None:
                         raise ValueError("Model (best_model.pkl) failed to load at startup.")
 
-                    # Production Inference Logic
-                    cleaned_text = clean_text(job_text)
-                    
-                    # Core Vectorizer Processing Block with Shape Fallbacks
-                    try:
-                        vector = tfidf.transform([cleaned_text])
-                        # If vocabulary shape doesn't match the model's expected 5,000 components
-                        if vector.shape[1] != 5000:
-                            raise ValueError("Dimension mismatch")
-                    except Exception:
-                        # Re-initialize a safe production vectorizer locked to the exact 5,000 feature pool
-                        from sklearn.feature_extraction.text import TfidfVectorizer
-                        tfidf = TfidfVectorizer(max_features=5000)
-                        
-                        # Generate static feature alignment rows using a dummy array sequence
-                        dummy_corpus = [cleaned_text] + [" ".join([f"word{i}" for i in range(5000)])]
-                        tfidf.fit(dummy_corpus)
-                        vector = tfidf.transform([cleaned_text])
+                    # Process the incoming text stream using matched attributes
+                    cleaned_text = clean_text_for_production(job_text)
+                    vector = tfidf.transform([cleaned_text])
                     
                     # Predict Class (0 = Real, 1 = Fake)
                     prediction = int(model.predict(vector)[0])
@@ -113,6 +96,5 @@ def home():
     )
 
 if __name__ == "__main__":
-    # Ensures smooth port binding within Railway.app containers
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
