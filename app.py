@@ -1,13 +1,18 @@
-from flask import Flask, request, render_template
-import joblib
+import os
 import re
 import string
+from flask import Flask, request, render_template
+import joblib
 
 app = Flask(__name__)
 
-# Load model aur vectorizer
-model = joblib.load('best_model.pkl')
-tfidf = joblib.load('tfidf.pkl')
+# Load fresh Random Forest model and vectorizer
+try:
+    model = joblib.load('best_model.pkl')
+    tfidf = joblib.load('tfidf.pkl')
+    print("✨ Balanced Random Forest Model & Vectorizer Loaded Successfully!")
+except Exception as e:
+    print(f"❌ Error loading model artifacts: {e}")
 
 def clean_text(text):
     if not text:
@@ -22,6 +27,7 @@ def clean_text(text):
 def home():
     result = ""
     result_class = ""
+    confidence = ""
     
     if request.method == "POST":
         job_text = request.form.get("job_text", "")
@@ -32,7 +38,7 @@ def home():
             result = "⚠️ Please provide a detailed job description (minimum 15 words)."
             result_class = "warning"
         
-        # Validation 2: Sanity Check (C++ ya code detection)
+        # Validation 2: Source code check
         else:
             job_markers = ['job', 'work', 'salary', 'experience', 'company', 'role', 'apply', 'skills']
             code_keywords = ['include', 'iostream', 'namespace', 'int main', 'void']
@@ -44,19 +50,34 @@ def home():
                 result = "❌ Error: This looks like source code, not a job description."
                 result_class = "fake"
             else:
-                # Prediction Logic
+                # Production Inference Logic
                 cleaned_text = clean_text(job_text)
                 vector = tfidf.transform([cleaned_text])
-                prediction = model.predict(vector)[0]
                 
-                if str(prediction).strip() == '1':
+                # Predict Class (0 = Real, 1 = Fake)
+                prediction = int(model.predict(vector)[0])
+                
+                # Extract classification probabilities
+                if hasattr(model, "predict_proba"):
+                    probabilities = model.predict_proba(vector)[0]
+                    confidence_score = round(float(probabilities[prediction]) * 100, 2)
+                    confidence = f"System Confidence: {confidence_score}%"
+                
+                if prediction == 1:
                     result = "🚨 ALERT: FAKE JOB POSTING DETECTED!"
                     result_class = "fake"
                 else:
                     result = "✅ SUCCESS: REAL JOB POSTING"
                     result_class = "real"
                 
-    return render_template("index.html", result=result, result_class=result_class)
+    return render_template(
+        "index.html", 
+        result=result, 
+        result_class=result_class, 
+        confidence=confidence
+    )
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Ensures smooth port binding within Railway.app containers
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

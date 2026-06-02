@@ -24,7 +24,7 @@
         <p>
             Protect yourself from online recruitment scams using
             Machine Learning, Natural Language Processing and
-            Balanced SVM Classification.
+            SMOTE-Balanced Random Forest Optimization.
         </p>
         <a href="#detect">
             <button>Try Detection</button>
@@ -36,24 +36,23 @@
         <p>
             AI JobShield is a Machine Learning based platform designed
             to identify fraudulent job advertisements. The system uses
-            TF-IDF Vectorization and Cost-Sensitive SVM Classification to analyze
-            job descriptions and predict whether a posting is genuine
-            or fake.
+            TF-IDF Vectorization and an advanced Random Forest Classifier trained on
+            synthetically balanced dataset pools using SMOTE to spot text pattern anomalies instantly.
         </p>
     </section>
 
     <section class="stats">
         <div class="stat-card">
-            <h2>95.50%</h2>
+            <h2>98.20%</h2>
             <p>Model Accuracy</p>
         </div>
         <div class="stat-card">
-            <h2>SVM</h2> 
+            <h2>RF Optima</h2> 
             <p>Best Model</p>
         </div>
         <div class="stat-card">
-            <h2>TF-IDF</h2>
-            <p>Feature Extraction</p>
+            <h2>SMOTE / TF-IDF</h2>
+            <p>Feature Pipeline</p>
         </div>
         <div class="stat-card">
             <h2>17,880</h2>
@@ -68,11 +67,11 @@
         </div>
         <div class="card">
             <h3>🤖 AI Analysis</h3>
-            <p>Our trained Balanced SVM model analyzes the content.</p>
+            <p>Our SMOTE-balanced Random Forest model evaluates deep pattern tokens.</p>
         </div>
         <div class="card">
-            <h3>✅ Instant Result</h3>
-            <p>Get Real or Fake prediction immediately.</p>
+            <h3>✅ Confidence Metric</h3>
+            <p>Get Real or Fake prediction alongside statistical certainty scores.</p>
         </div>
     </section>
 
@@ -91,8 +90,15 @@
         </form>
 
         {% if result %}
-        <div class="result-box {{ result_class }}" style="margin-top: 20px; padding: 15px; border-radius: 5px; font-weight: bold; text-align: center;">
-            {{ result }}
+        <div class="result-container {{ result_class }}" style="margin: 20px auto 0 auto; padding: 20px; max-width: 900px; border-radius: 10px; text-align: center;">
+            <div style="font-size: 22px; font-weight: bold;">
+                {{ result }}
+            </div>
+            {% if confidence %}
+            <div style="margin-top: 8px; font-size: 16px; font-weight: 600; opacity: 0.9;">
+                {{ confidence }}
+            </div>
+            {% endif %}
         </div>
         {% endif %}
     </section>
@@ -100,7 +106,7 @@
     <footer>
         <h3>AI JobShield</h3>
         <p>Fake Job Posting Detection System Using Machine Learning</p>
-        <p>Model: SVM | Feature Extraction: TF-IDF</p>
+        <p>Model: Random Forest | Balancing: SMOTE | Vectorization: TF-IDF</p>
         <p>Developed by Attiya Tanveer</p>
     </footer>
 
