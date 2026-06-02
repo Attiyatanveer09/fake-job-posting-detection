@@ -10,7 +10,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 model = None
 tfidf = None
 
-# Load your Random Forest model and vectorizer safely
+# Load your fresh Random Forest model and vectorizer safely
 try:
     model = joblib.load('best_model.pkl')
     tfidf = joblib.load('tfidf.pkl')
