@@ -6,11 +6,9 @@ import joblib
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
-# Global variables for our machine learning artifacts
 model = None
 tfidf = None
 
-# Load your fresh Random Forest model and vectorizer safely
 try:
     model = joblib.load('best_model.pkl')
     tfidf = joblib.load('tfidf.pkl')
@@ -32,22 +30,50 @@ def is_valid_job_description(text):
     if word_count < 15:
         return False, "short"
 
-    # Detect source code
     code_signals = ['#include', 'int main', 'def ', 'import ', 'class ',
                     'public static', 'console.log', '<?php', 'SELECT * FROM']
     if sum(1 for sig in code_signals if sig in text) >= 2:
         return False, "code"
 
-    # Must have at least some job-related vocabulary
     job_vocab = ['job', 'work', 'salary', 'experience', 'company', 'role',
                  'apply', 'skills', 'position', 'team', 'responsibilities',
                  'requirements', 'hire', 'candidate', 'office', 'remote',
-                 'full-time', 'part-time', 'contract', 'benefits', 'degree']
+                 'full-time', 'part-time', 'contract', 'benefits', 'degree',
+                 'earn', 'hiring', 'opportunity', 'income', 'employment',
+                 'vacancy', 'opening', 'applicant', 'qualification', 'payment']
     matches = sum(1 for word in job_vocab if word in text.lower())
     if matches < 2:
         return False, "not_job"
 
     return True, "ok"
+
+def check_red_flags(text):
+    red_flags = [
+        'bank account', 'banking details', 'banking information',
+        'registration fee', 'processing fee', 'verification fee',
+        'wire transfer', 'western union', 'send money',
+        'no experience needed', 'no experience required',
+        'no interview', 'no qualifications',
+        'guaranteed income', 'guaranteed earnings',
+        'earn $', 'earn up to $',
+        'pre-selected', 'randomly selected', 'you have been selected',
+        'unlimited income', 'instant approval',
+        'provide your bank', 'financial information',
+        'pay a fee', 'pay a small', 'one-time fee',
+        'work from home and earn', 'make thousands',
+        'immediate placement', 'approval is guaranteed',
+        'no education', 'positions are filling',
+        'guaranteed', 'selected for', 'congratulations',
+        'provide your', 'send your', 'submit your',
+        'transfer a', 'pay a registration', 'pay a processing',
+        'income potential', 'earning potential',
+        'one hour per day', 'working one hour',
+        'no training required', 'no interview required'
+    ]
+
+    text_lower = text.lower()
+    triggered = [flag for flag in red_flags if flag in text_lower]
+    return triggered
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -64,7 +90,6 @@ def home():
                 result_class = "warning"
                 return render_template("index.html", result=result, result_class=result_class, confidence=confidence)
 
-            # Validate the input
             valid, reason = is_valid_job_description(job_text)
 
             if not valid:
@@ -82,18 +107,22 @@ def home():
                 if model is None:
                     raise ValueError("Model (best_model.pkl) failed to load at startup.")
 
-                # Clean and vectorize
+                # ML Prediction
                 cleaned_text = clean_text_for_production(job_text)
                 vector = tfidf.transform([cleaned_text])
-
-                # Predict
                 prediction = int(model.predict(vector)[0])
 
-                # Confidence score
                 if hasattr(model, "predict_proba"):
                     probabilities = model.predict_proba(vector)[0]
                     confidence_score = round(float(probabilities[prediction]) * 100, 2)
                     confidence = f"System Confidence: {confidence_score}%"
+
+                # Red Flag Rule Layer
+                triggered_flags = check_red_flags(job_text)
+
+                if len(triggered_flags) >= 2:
+                    prediction = 1
+                    confidence = f"System Confidence: 99.0% (Red Flags Detected: {len(triggered_flags)})"
 
                 if prediction == 1:
                     result = "🚨 ALERT: FAKE JOB POSTING DETECTED!"
